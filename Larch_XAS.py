@@ -43,7 +43,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -57,8 +57,10 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files\Ni-b59-03-CrCuNiCr-AE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
-IF_SAVE = False  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot
+CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files\Mn-b58-04-ScVMnSc-AE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot, including
+                # the merged scan images from every FILE_TYPE branch. Only the .png output is affected; the .prj files
+                # are still written and IF_DELETE_SINGLE_PRJ still removes the intermediate ones.
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -139,6 +141,24 @@ def plot_xas(files):
         f_list.append(file)
         print(index, file)
 
+    if len(f_list) == 0:
+        print("\n==============================")
+        print('No file found')
+        print("------------------------------")
+        print(f'INPUT_PATH ---> {INPUT_PATH}')
+        print(f'FILE_TYPE  ---> {FILE_TYPE}')
+        raise FileNotFoundError(f'No *{FILE_TYPE} file in {INPUT_PATH}, so FILE_INDEX = {FILE_INDEX} has nothing to plot')
+
+    if FILE_INDEX not in range(len(f_list)):
+        print("\n==============================")
+        print('Invalid file index')
+        print("------------------------------")
+        print(f'FILE_INDEX = {FILE_INDEX}')
+        print(f'INPUT_PATH only has file index 0-{len(f_list) - 1}:')
+        for index, file in enumerate(f_list):
+            print(f'{index:>2} {file.name}')
+        raise IndexError(f'FILE_INDEX = {FILE_INDEX}, but only 0-{len(f_list) - 1} are available in {INPUT_PATH}')
+
     print("\n==============================")
     print(f'Data column in file number {FILE_INDEX} ---> {f_list[FILE_INDEX].name}')
     print("------------------------------")
@@ -170,6 +190,22 @@ def plot_xas(files):
             increment += 1
             print('{:>2} {}'.format(sample_index, sample_name))
     else:
+        valid_index = range(7, len(file_keys))  # File key 0-6 are data information, so samples start from 7
+        bad_index = [sample_index for sample_index in SAMPLE_LIST if sample_index not in valid_index]
+        if len(bad_index) != 0:
+            print("\n==============================")
+            print('Invalid sample index')
+            print("------------------------------")
+            print(f'SAMPLE_LIST = {SAMPLE_LIST}')
+            print(f'Out of range ---> {bad_index}')
+            print(f'File number {FILE_INDEX} ---> {f_list[FILE_INDEX].name} '
+                  f'only has sample index {valid_index.start}-{valid_index.stop - 1}:')
+            for index in valid_index:
+                print(f'{index:>2} {file_keys[index]}')
+            raise IndexError(f'SAMPLE_LIST contains index {bad_index}, '
+                             f'but only {valid_index.start}-{valid_index.stop - 1} are available '
+                             f'in {f_list[FILE_INDEX].name}')
+
         color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want their own color
         for sample_index in SAMPLE_LIST:
             sample_name = file_keys[sample_index]

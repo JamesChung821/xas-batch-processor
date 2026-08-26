@@ -74,7 +74,7 @@ uv pip install xraylarch wxpython palettable colorama
    - `INPUT_PATH` — folder containing your data files
    - `SKIP_SCANS` — names of bad scans to exclude from merging
    - `CONFIG_FILE` — path to the plotting `.ini` (only used for `.txt` mode)
-   - `IF_SAVE` — save figures as 300-dpi PNGs next to the config file
+   - `IF_SAVE` — save figures as 300-dpi PNGs. Applies to all three workflows: the per-sample merge plots (saved in `INPUT_PATH`) and the `.txt` comparison plot (saved next to the `.ini`). Set it to `False` to skip writing PNGs entirely — the `.prj` output is written either way. (The merge workflows close their figures immediately, so with `IF_SAVE = False` they produce no visible plot; only the `.txt` workflow displays one.)
 2. Run the script with the environment you installed into (see [Requirements](#requirements)):
    ```
    # conda / Miniforge
