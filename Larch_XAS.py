@@ -43,7 +43,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202607\20260715 BMM b57T4b64T4\b57-T4_CrCuNiCr\Ni\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -57,7 +57,7 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files\Mn-b58-04-ScVMnSc-AE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202607\20260715 BMM b57T4b64T4\b57-T4_CrCuNiCr\Ni\Output_files\Ni_b57_T4_CrCuNiCr_inset.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot, including
                 # the merged scan images from every FILE_TYPE branch. Only the .png output is affected; the .prj files
                 # are still written and IF_DELETE_SINGLE_PRJ still removes the intermediate ones.
@@ -78,7 +78,8 @@ else:
 FILE_INDEX = config.getint('samples', 'file_index') if is_ini else 0                         # Which file in the file list you want to plot
 SAMPLE_LIST = eval(config['samples']['sample_list']) if is_ini else []                                    # [] for default or [1, 7, 5, 3] for a index list you want to plot
 STANDARD_LIST = eval(config['samples']['standard_list']) if is_ini else []                                # [] if none or [5, 3] in the SAMPLE_LIST become dash lines
-SAMPLE_LABEL = eval(config['legends']['sample_label']) if is_ini else []                                  # [] for default or add a specific name list
+_label_raw = config['legends'].get('sample_label', '[]').strip() if is_ini else '[]'
+SAMPLE_LABEL = None if _label_raw.lower() in ('none', 'off', 'false') else eval(_label_raw or '[]')  # [] for default, a name list, or None/off to hide the legend
 FIGURE_SIZE = eval(config['format']['figure_size']) if is_ini else (6.4, 4.8)                             # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
 PALETTE = eval(config['format']['palette']) if is_ini else pltt.colorbrewer.diverging.Spectral_4_r        # pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap                                                                               # .mpl_colormap attribute is a continuous, interpolated map
@@ -88,9 +89,10 @@ COLOR_INCREMENT = eval(config['format']['color_increment']) if is_ini else 0
 OFFSET = eval(config['format']['offset']) if is_ini else 0                                                # Value you want to add to an y offset for each curve.
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 Y_RANGE = eval(config['format']['y_range']) if is_ini else ()                                             # () for default
-ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
-# IF_SAVE = eval(config['format']['if_save']) if is_ini else True                                           # Save the plot or not
+ENERGY_INTERVAL = eval(config['format'].get('energy_interval', '0').strip() or '0') if is_ini else 0                            # This parameter works only when you set a ENERGY_RANGE
+PLOT_SAVE = config['format'].getboolean('if_save', fallback=IF_SAVE) if is_ini else IF_SAVE             # .ini if_save overrides IF_SAVE for the .txt plot only
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
+FONT_SCALE = eval(config['format'].get('font_scale', '1').strip() or '1') if is_ini else 1     # 1 for default, e.g. 1.5 for an inset figure
 NUM_COLUMN = 1
 DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated the number of detectors from 4 to 7
 ADD_REFERENCE = True # Add a reference prj file for each sample, so you can set add_reference=False if you don't want to have it
@@ -209,7 +211,7 @@ def plot_xas(files):
         color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want their own color
         for sample_index in SAMPLE_LIST:
             sample_name = file_keys[sample_index]
-            if len(SAMPLE_LABEL) > SAMPLE_LIST.index(sample_index):
+            if SAMPLE_LABEL and len(SAMPLE_LABEL) > SAMPLE_LIST.index(sample_index):
                 sample_label = SAMPLE_LABEL[SAMPLE_LIST.index(sample_index)]
             else:
                 sample_label = sample_name
@@ -229,25 +231,30 @@ def plot_xas(files):
     # Plot format
     if ENERGY_RANGE == ():
         ax1.set_xlim(energy.min() // 1 + 1, energy.max() // 1 - 1)
-        plt.xticks(fontsize=14)
+        plt.xticks(fontsize=14 * FONT_SCALE)
     else:
         ax1.set_xlim(ENERGY_RANGE)
-        plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
+        if ENERGY_INTERVAL:
+            plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14 * FONT_SCALE)
+        else:
+            plt.xticks(fontsize=14 * FONT_SCALE)                                                                 # Default tick interval
     if Y_RANGE != ():
         ax1.set_ylim(Y_RANGE)
-    plt.title(OUTPUT_FILENAME, fontsize=20, pad=15) \
+    plt.title(OUTPUT_FILENAME, fontsize=20 * FONT_SCALE, pad=15) \
         if OUTPUT_FILENAME != "" \
-        else plt.title(Path(CONFIG_FILE).stem, fontsize=20, pad=15)
+        else plt.title(Path(CONFIG_FILE).stem, fontsize=20 * FONT_SCALE, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ \mu(E)}$'     # XANES normalization doesn't have x
     # plt.yticks([])  # Disable ticks
     ax1.tick_params(width=FRAMELINEWIDTH)
-    ax1.set_xlabel(x_label, fontsize=18)
-    ax1.set_ylabel(y_label, fontsize=18, labelpad=10)
+    plt.yticks(fontsize=14 * FONT_SCALE)
+    ax1.set_xlabel(x_label, fontsize=18 * FONT_SCALE)
+    ax1.set_ylabel(y_label, fontsize=18 * FONT_SCALE, labelpad=10)
     # plt.rcParams["axes.linewidth"] = 5
-    plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14, ncol=NUM_COLUMN, reverse=True)
+    if SAMPLE_LABEL is not None:
+        plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14 * FONT_SCALE, ncol=NUM_COLUMN, reverse=True)
     plt.tight_layout()
-    if IF_SAVE:
+    if PLOT_SAVE:
         plt.yticks([])  # Disable ticks
         config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(OUTPUT_FILENAME, config_file_location) \

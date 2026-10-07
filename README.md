@@ -95,7 +95,7 @@ uv pip install xraylarch wxpython palettable colorama
 For the `.txt` plotting workflow, copy `larch_plot_config.ini` next to your data and adjust:
 
 - **`[samples]`** — `file_index` picks which file in the folder to plot; `sample_list` selects and orders the data columns; indices in `standard_list` are drawn as dashed lines (e.g., reference foils).
-- **`[legends]`** — `sample_label` overrides the column names in the legend (LaTeX like `Cu$_2$O` and unicode like `°` work).
-- **`[format]`** — figure size, [palettable](https://jiffyclub.github.io/palettable/) color palette, line widths, per-curve y-offset for stacked plots, energy/y-axis ranges, tick interval, and output filename.
+- **`[legends]`** — `sample_label` overrides the column names in the legend (LaTeX like `Cu$_2$O` works; write special characters as escapes, e.g. `°` for °, so the file stays plain ASCII). Set it to `None` or `off` to hide the legend, e.g. for an inset figure.
+- **`[format]`** — figure size, [palettable](https://jiffyclub.github.io/palettable/) color palette, line widths, per-curve y-offset for stacked plots, energy/y-axis ranges, tick interval, font scale (`font_scale = 1.5` enlarges all text, handy for insets), and output filename.
 
 Run the script once with an empty `sample_list` to print every column index and name, then use those indices to set up the plot you want.
