@@ -43,7 +43,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202607\20260715 BMM b57T4b64T4\b57-T4_CrCuNiCr\Ni\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202506\20250623 BMM AE\data\b65-06 CrCuNiCr\WAXS XANES-Cr-AE continuous\Plot"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -57,7 +57,7 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202607\20260715 BMM b57T4b64T4\b57-T4_CrCuNiCr\Ni\Output_files\Ni_b57_T4_CrCuNiCr_inset.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"G:\Other computers\我的 筆記型電腦 MSI\Research data\SSID\202506\20250623 BMM AE\data\b65-06 CrCuNiCr\WAXS XANES-Cr-AE continuous\Plot\Cr_b65-06-CrCuNiCr.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot, including
                 # the merged scan images from every FILE_TYPE branch. Only the .png output is affected; the .prj files
                 # are still written and IF_DELETE_SINGLE_PRJ still removes the intermediate ones.
@@ -90,10 +90,10 @@ OFFSET = eval(config['format']['offset']) if is_ini else 0                      
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 Y_RANGE = eval(config['format']['y_range']) if is_ini else ()                                             # () for default
 ENERGY_INTERVAL = eval(config['format'].get('energy_interval', '0').strip() or '0') if is_ini else 0                            # This parameter works only when you set a ENERGY_RANGE
-PLOT_SAVE = config['format'].getboolean('if_save', fallback=IF_SAVE) if is_ini else IF_SAVE             # .ini if_save overrides IF_SAVE for the .txt plot only
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
 FONT_SCALE = eval(config['format'].get('font_scale', '1').strip() or '1') if is_ini else 1     # 1 for default, e.g. 1.5 for an inset figure
 NUM_COLUMN = 1
+LEGEND_LOCATION = 'upper left'   # Legend position in the .txt plot: 'best', 'upper left', 'center right', etc.
 DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated the number of detectors from 4 to 7
 ADD_REFERENCE = True # Add a reference prj file for each sample, so you can set add_reference=False if you don't want to have it
 IF_DELETE_SINGLE_PRJ = True  # Delete single prj files after merging, so you can set IF_DELETE_SIGNLE_PRJ=False if you want to keep them
@@ -240,6 +240,15 @@ def plot_xas(files):
             plt.xticks(fontsize=14 * FONT_SCALE)                                                                 # Default tick interval
     if Y_RANGE != ():
         ax1.set_ylim(Y_RANGE)
+    else:   # Scale y to the curves inside the shown energy range, including the offset
+        x_min, x_max = ax1.get_xlim()
+        y_visible = [line.get_ydata()[(line.get_xdata() >= x_min) & (line.get_xdata() <= x_max)]
+                     for line in ax1.get_lines()]
+        y_visible = np.concatenate(y_visible)
+        y_visible = y_visible[np.isfinite(y_visible)]
+        if y_visible.size:
+            y_margin = (y_visible.max() - y_visible.min()) * 0.05
+            ax1.set_ylim(y_visible.min() - y_margin, y_visible.max() + y_margin)
     plt.title(OUTPUT_FILENAME, fontsize=20 * FONT_SCALE, pad=15) \
         if OUTPUT_FILENAME != "" \
         else plt.title(Path(CONFIG_FILE).stem, fontsize=20 * FONT_SCALE, pad=15)
@@ -252,9 +261,9 @@ def plot_xas(files):
     ax1.set_ylabel(y_label, fontsize=18 * FONT_SCALE, labelpad=10)
     # plt.rcParams["axes.linewidth"] = 5
     if SAMPLE_LABEL is not None:
-        plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14 * FONT_SCALE, ncol=NUM_COLUMN, reverse=True)
+        plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=14 * FONT_SCALE, ncol=NUM_COLUMN, reverse=True)
     plt.tight_layout()
-    if PLOT_SAVE:
+    if IF_SAVE:
         plt.yticks([])  # Disable ticks
         config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(OUTPUT_FILENAME, config_file_location) \
